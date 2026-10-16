@@ -1,0 +1,109 @@
+# =====================================================================
+# Microservicio Pólizas Colectiva - parámetros desde .env
+# =====================================================================
+spring:
+  application:
+    name: polizas-colectivas
+  config:
+    import: optional:file:.env[.properties]
+  main:
+    web-application-type: reactive
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      auto-offset-reset: latest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      max-poll-records: ${KAFKA_MAX_POLL_RECORDS:50}
+      properties:
+        session.timeout.ms: ${KAFKA_SESSION_TIMEOUT_MS:45000}
+        reconnect.backoff.ms: ${KAFKA_RECONNECT_BACKOFF_MS:1000}
+        reconnect.backoff.max.ms: ${KAFKA_RECONNECT_BACKOFF_MAX_MS:30000}
+    listener:
+      ack-mode: record
+      concurrency: ${KAFKA_LISTENER_CONCURRENCY:1}
+      missing-topics-fatal: false
+
+server:
+  port: ${SERVER_PORT:8082}
+  shutdown: graceful
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    circuitbreakers:
+      enabled: true
+
+logging:
+  pattern:
+    level: "%5p [${spring.application.name}]"
+  level:
+    root: ${LOG_LEVEL_ROOT:INFO}
+    com.segurosbolivar.polizas.colectivas: ${LOG_LEVEL_APP:INFO}
+    org.apache.kafka: WARN
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      corePolizas:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: ${CB_SLIDING_WINDOW_SIZE:20}
+        minimum-number-of-calls: ${CB_MINIMUM_CALLS:10}
+        failure-rate-threshold: ${CB_FAILURE_RATE_THRESHOLD:50}
+        slow-call-duration-threshold: ${CB_SLOW_CALL_DURATION:3s}
+        slow-call-rate-threshold: ${CB_SLOW_CALL_RATE_THRESHOLD:80}
+        wait-duration-in-open-state: ${CB_WAIT_OPEN_STATE:30s}
+        permitted-number-of-calls-in-half-open-state: ${CB_HALF_OPEN_CALLS:3}
+        automatic-transition-from-open-to-half-open-enabled: true
+        register-health-indicator: true
+        ignore-exceptions:
+          - com.segurosbolivar.polizas.colectivas.shared.domain.exception.ErrorNegocioCoreException
+
+app:
+  zona-horaria: ${APP_ZONA_HORARIA:America/Bogota}
+  openapi:
+    titulo: API Microservicio Pólizas Colectiva
+    descripcion: "Pólizas colectivas para inmobiliarias y administraciones de copropiedad: agregar y cancelar riesgos (arrendatarios asegurados)."
+    version: v1
+  security:
+    api-key-header: ${API_KEY_HEADER:x-api-key}
+    api-key: ${API_KEY:123456}
+    jwt-enabled: ${SECURITY_JWT_ENABLED:true}
+    jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8180/realms/seguros-bolivar/protocol/openid-connect/certs}
+    issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/seguros-bolivar}
+    public-paths:
+      - /swagger-ui.html
+      - /swagger-ui/**
+      - /v3/api-docs/**
+      - /webjars/**
+      - /actuator/health/**
+      - /actuator/info
+  core:
+    base-url: ${CORE_BASE_URL:http://localhost:8080}
+    api-key: ${CORE_API_KEY:123456}
+    connect-timeout: ${CORE_CONNECT_TIMEOUT:3s}
+    response-timeout: ${CORE_RESPONSE_TIMEOUT:10s}
+    circuit-breaker: corePolizas
+    retry:
+      max-attempts: ${CORE_RETRY_MAX_ATTEMPTS:3}
+      initial-backoff: ${CORE_RETRY_INITIAL_BACKOFF:300ms}
+      max-backoff: ${CORE_RETRY_MAX_BACKOFF:3s}
+      jitter: ${CORE_RETRY_JITTER:0.5}
+  kafka:
+    topic-eventos: ${KAFKA_TOPIC_EVENTOS:polizas.eventos}
+    grupo: ${KAFKA_GROUP:polizas-colectivas}
+    listeners-enabled: ${KAFKA_LISTENERS_ENABLED:true}

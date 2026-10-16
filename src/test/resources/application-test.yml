@@ -1,0 +1,5 @@
+app:
+  security:
+    jwt-enabled: false
+  kafka:
+    listeners-enabled: false

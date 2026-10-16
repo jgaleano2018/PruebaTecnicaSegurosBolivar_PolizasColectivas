@@ -1,0 +1,22 @@
+# Despliegue individual de este microservicio. Requiere la red y la infraestructura levantadas
+# desde PruebaTecnicaSegurosBolivar_Core (docker compose up -d).
+name: polizas-colectivas
+
+services:
+  polizas-colectivas:
+    build: .
+    image: seguros-bolivar/polizas-colectivas:1.0.0
+    container_name: sb-polizas-colectivas-standalone
+    env_file: .env
+    environment:
+      CORE_BASE_URL: http://polizas-core:8080
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/seguros-bolivar/protocol/openid-connect/certs
+      KEYCLOAK_ISSUER_URI: http://localhost:8180/realms/seguros-bolivar
+    ports:
+      - "8082:8082"
+    networks: [seguros-net]
+
+networks:
+  seguros-net:
+    external: true
